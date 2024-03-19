@@ -15,7 +15,7 @@
 import os
 from typing import List, Literal, Optional
 
-from datasets import DatasetDict, concatenate_datasets, load_dataset, load_from_disk
+from datasets import DatasetDict, concatenate_datasets, load_dataset, load_from_disk, IterableDatasetDict
 from datasets.builder import DatasetGenerationError
 
 from .configs import DataArguments
@@ -102,7 +102,7 @@ def get_datasets(
     text_column: Optional[str] = None,
     use_streaming: bool = False,
     shuffle: bool = True,
-) -> DatasetDict:
+) -> DatasetDict | IterableDatasetDict:
     """
     Loads one or more datasets with varying training set proportions.
 
@@ -147,7 +147,7 @@ def get_datasets(
             raise ValueError("Streaming is only supported for a single dataset and it must have a proportion of 1.0.")
         dataset_name = list(dataset_mixer.keys())[0]
         config_name = configs[0] if configs else None
-        raw_datasets = DatasetDict()
+        raw_datasets = IterableDatasetDict()
         for split in splits:
             ds = load_dataset(dataset_name, config_name, streaming=use_streaming, split=split)
 

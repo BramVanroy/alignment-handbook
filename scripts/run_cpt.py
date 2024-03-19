@@ -88,6 +88,7 @@ def main():
         splits=data_args.dataset_splits,
         configs=data_args.dataset_configs,
         text_column=data_args.text_column,
+        use_streaming=data_args.use_streaming,
     )
 
     logger.info(

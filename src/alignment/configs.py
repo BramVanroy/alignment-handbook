@@ -229,6 +229,14 @@ class DataArguments:
             )
         },
     )
+    use_streaming: bool = field(
+        default=False,
+        metadata={
+            "help": (
+                "Whether to use dataset streaming. This is only enabled if your data_mizer only contains one dataset."
+            )
+        },
+    )
 
 
 @dataclass

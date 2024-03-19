@@ -100,6 +100,7 @@ def get_datasets(
     splits: Optional[List[str]] = None,
     configs: Optional[List[str]] = None,
     text_column: Optional[str] = None,
+    use_streaming: bool = False,
     shuffle: bool = True,
 ) -> DatasetDict:
     """
@@ -114,6 +115,8 @@ def get_datasets(
             List of dataset config names. If given must be the same length as 'data_config' keys.
         text_column (Optional[str], *optional*, defaults to `None`):
             Name of the text column to use as input, just to make sure that we do not remove it. Only used in cpt.
+        use_streaming (`bool`, *optional*, defaults to `False`):
+            Whether to use streaming for loading datasets.
         shuffle (`bool`, *optional*, defaults to `True`):
             Whether to shuffle the training and testing/validation data.
 
@@ -139,10 +142,28 @@ def get_datasets(
     else:
         raise ValueError(f"Data config {data_config} not recognized.")
 
-    raw_datasets = mix_datasets(
-        dataset_mixer, splits=splits, configs=configs, text_column=text_column, shuffle=shuffle
-    )
-    return raw_datasets
+    if use_streaming:
+        if len(dataset_mixer) > 1 or list(dataset_mixer.values())[0] != 1.0:
+            raise ValueError("Streaming is only supported for a single dataset and it must have a proportion of 1.0.")
+        dataset_name = list(dataset_mixer.keys())[0]
+        config_name = configs[0] if configs else None
+        raw_datasets = DatasetDict()
+        for split in splits:
+            ds = load_dataset(dataset_name, config_name, streaming=use_streaming, split=split)
+
+            if shuffle:
+                ds = ds.shuffle(buffer_size=10_000, seed=42)
+
+            if "train" in split:
+                raw_datasets["train"] = ds
+            elif "test" in split:
+                raw_datasets["test"] = ds
+            else:
+                raise ValueError(f"Split type {split} not recognized as one of test or train.")
+
+        return raw_datasets
+    else:
+        return mix_datasets(dataset_mixer, splits=splits, configs=configs, text_column=text_column, shuffle=shuffle)
 
 
 def mix_datasets(

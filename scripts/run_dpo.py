@@ -77,7 +77,12 @@ def main():
     ###############
     # Load datasets
     ###############
-    raw_datasets = get_datasets(data_args, splits=data_args.dataset_splits, configs=data_args.dataset_configs)
+    raw_datasets = get_datasets(
+        data_args,
+        splits=data_args.dataset_splits,
+        configs=data_args.dataset_configs,
+        use_streaming=data_args.use_streaming,
+    )
     logger.info(
         f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
     )

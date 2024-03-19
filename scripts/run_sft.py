@@ -91,9 +91,15 @@ def main():
         configs=data_args.dataset_configs,
         use_streaming=data_args.use_streaming,
     )
-    logger.info(
-        f"Training on the following datasets and their proportions: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
-    )
+    if data_args.use_streaming:
+        logger.info(
+            f"Training on {data_args.dataset_mixer} with streaming enabled."
+        )
+    else:
+        logger.info(
+            f"Training on the following datasets and their proportions:"
+            f" {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
+        )
     column_names = list(raw_datasets["train"].features)
 
     ################
@@ -155,9 +161,10 @@ def main():
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["test"]
 
-    with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
-        for index in random.sample(range(len(raw_datasets["train"])), 3):
-            logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
+    if not data_args.use_streaming:
+        with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
+            for index in random.sample(range(len(raw_datasets["train"])), 3):
+                logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
 
     ########################
     # Initialize the Trainer

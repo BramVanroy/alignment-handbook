@@ -91,10 +91,15 @@ def main():
         use_streaming=data_args.use_streaming,
     )
 
-    logger.info(
-        f"Training on the following datasets and their proportions:"
-        f" {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
-    )
+    if data_args.use_streaming:
+        logger.info(
+            f"Training on {data_args.dataset_mixer} with streaming enabled."
+        )
+    else:
+        logger.info(
+            f"Training on the following datasets and their proportions:"
+            f" {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
+        )
 
     train_dataset = raw_datasets["train"] if "train" in raw_datasets else None
     eval_dataset = raw_datasets["test"] if "test" in raw_datasets else None
@@ -112,9 +117,10 @@ def main():
     ################
     tokenizer = get_tokenizer(model_args, data_args, auto_set_chat_template=False)
 
-    with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
-        for index in random.sample(range(len(raw_datasets["train"])), 3):
-            logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
+    if not data_args.use_streaming:
+        with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
+            for index in random.sample(range(len(raw_datasets["train"])), 3):
+                logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
 
     #######################
     # Load pretrained model

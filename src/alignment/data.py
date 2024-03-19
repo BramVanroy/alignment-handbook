@@ -160,7 +160,7 @@ def get_datasets(
                 raw_datasets["test"] = ds
             else:
                 raise ValueError(f"Split type {split} not recognized as one of test or train.")
-
+        raw_datasets = raw_datasets.select_columns(text_column) if text_column else raw_datasets
         return raw_datasets
     else:
         return mix_datasets(dataset_mixer, splits=splits, configs=configs, text_column=text_column, shuffle=shuffle)

@@ -83,9 +83,15 @@ def main():
         configs=data_args.dataset_configs,
         use_streaming=data_args.use_streaming,
     )
-    logger.info(
-        f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
-    )
+    if data_args.use_streaming:
+        logger.info(
+            f"Training on {data_args.dataset_mixer} with streaming enabled."
+        )
+    else:
+        logger.info(
+            f"Training on the following datasets and their proportions:"
+            f" {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
+        )
     column_names = list(raw_datasets["train"].features)
 
     #####################################

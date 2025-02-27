@@ -85,6 +85,7 @@ def main():
             "chosen",
             "rejected",
         ],
+        shuffle=data_args.shuffle,
     )
     logger.info(
         f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"

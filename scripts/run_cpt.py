@@ -88,6 +88,7 @@ def main():
         splits=data_args.dataset_splits,
         configs=data_args.dataset_configs,
         columns_to_keep=[data_args.text_column],
+        shuffle=data_args.shuffle,
     )
 
     logger.info(

@@ -234,6 +234,10 @@ class DataArguments:
             )
         },
     )
+    shuffle: bool = field(
+        default=True,
+        metadata={"help": "Whether to shuffle the datasets."},
+    )
 
 
 @dataclass

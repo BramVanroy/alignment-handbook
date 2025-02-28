@@ -29,6 +29,7 @@ from transformers import set_seed
 from alignment import (
     DataArguments,
     H4ArgumentParser,
+    LanguageGroupedSFTTrainer,
     ModelArguments,
     SFTConfig,
     get_checkpoint,
@@ -87,13 +88,13 @@ def main():
         data_args,
         splits=data_args.dataset_splits,
         configs=data_args.dataset_configs,
-        columns_to_keep=[data_args.text_column],
+        columns_to_keep=data_args.keep_columns,
         shuffle=data_args.shuffle,
     )
 
     logger.info(
         f"Training on the following datasets and their proportions:"
-        f" {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
+        f" {[split + ' : ' + str(len(dset)) for split, dset in raw_datasets.items()]}"
     )
 
     train_dataset = raw_datasets["train"] if "train" in raw_datasets else None
@@ -112,9 +113,11 @@ def main():
     ################
     tokenizer = get_tokenizer(model_args, data_args, auto_set_chat_template=False)
 
-    with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
-        for index in random.sample(range(len(raw_datasets["train"])), 3):
-            logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
+    # Only print samples if not a pre-tokenized
+    if train_dataset and "input_ids" not in train_dataset.column_names:
+        with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
+            for index in random.sample(range(len(raw_datasets["train"])), 3):
+                logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
 
     #######################
     # Load pretrained model
@@ -138,19 +141,37 @@ def main():
     ########################
     # Initialize the Trainer
     ########################
-    trainer = SFTTrainer(
-        model=model_args.model_name_or_path,
-        model_init_kwargs=model_kwargs,
-        args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        dataset_text_field=data_args.text_column,
-        max_seq_length=training_args.max_seq_length,
-        tokenizer=tokenizer,
-        packing=True,
-        peft_config=get_peft_config(model_args),
-        dataset_kwargs=training_args.dataset_kwargs,
-    )
+    
+    if data_args.language_column is not None:
+        trainer = LanguageGroupedSFTTrainer(            
+            language_column=data_args.language_column,
+            shuffle=data_args.shuffle,
+            model=model_args.model_name_or_path,
+            model_init_kwargs=model_kwargs,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            dataset_text_field=data_args.text_column,
+            max_seq_length=training_args.max_seq_length,
+            tokenizer=tokenizer,
+            packing=True,
+            peft_config=get_peft_config(model_args),
+            dataset_kwargs=training_args.dataset_kwargs,
+        )
+    else:
+        trainer = SFTTrainer(
+            model=model_args.model_name_or_path,
+            model_init_kwargs=model_kwargs,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            dataset_text_field=data_args.text_column,
+            max_seq_length=training_args.max_seq_length,
+            tokenizer=tokenizer,
+            packing=True,
+            peft_config=get_peft_config(model_args),
+            dataset_kwargs=training_args.dataset_kwargs,
+        )
 
     ###############
     # Training loop
@@ -178,9 +199,8 @@ def main():
 
     # Save everything else on main process
     kwargs = {
-        "finetuned_from": model_args.model_name_or_path,
-        "dataset": list(data_args.dataset_mixer.keys()),
-        "dataset_tags": list(data_args.dataset_mixer.keys()),
+        "model_name": training_args.hub_model_id,
+        "dataset_name": list(data_args.dataset_mixer.keys()),
         "tags": ["alignment-handbook"],
     }
     if trainer.accelerator.is_main_process:

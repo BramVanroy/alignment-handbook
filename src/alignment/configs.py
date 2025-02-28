@@ -238,6 +238,14 @@ class DataArguments:
         default=True,
         metadata={"help": "Whether to shuffle the datasets."},
     )
+    language_column: Optional[str] = field(
+        default=None,
+        metadata={"help": "If given, the model will use a language-based sampler for training, and will make sure that all items in a batch are from the same language.."},
+    )
+    keep_columns: Optional[List[str]] = field(
+        default_factory=lambda: ["all"],
+        metadata={"help": "Columns to keep in the dataset. If set to ['all'], no columns will be removed."},
+    )
 
 
 @dataclass
